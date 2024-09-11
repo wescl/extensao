@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkrgEb9DEnSIVg0W_cYBO-dj0uwoqa6tXSnQ&s" type="image/x-icon">
+    <title>Blockchain Games Brasil</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.18.0/firebase-app.js';
+        import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.18.0/firebase-database.js';
+
+        // Importar a configuração do Firebase
+        import { firebaseConfig } from './config.js';
+
+        // Inicializar o Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Função para formatar números no padrão brasileiro
+        function formatNumberBR(number) {
+            if (isNaN(number)) return number.toString();
+            let integerPart = Math.floor(number).toString();
+            integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return integerPart;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.querySelector('#data-table tbody');
+            const playersRef = ref(database, 'player');
+
+            get(playersRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const dataArray = [];
+
+                    for (const key in data) {
+                        if (data.hasOwnProperty(key)) {
+                            const player = data[key];
+                            const points = parseFloat(player.pts.replace(/,/g, '').replace('.', '.'));
+                            if (!isNaN(points)) {
+                                dataArray.push([
+                                    player.id,
+                                    player.nome,
+                                    player.vip,
+                                    points
+                                ]);
+                            }
+                        }
+                    }
+
+                    const sortedData = dataArray.sort((a, b) => b[3] - a[3]);
+
+                    const classifiedData = sortedData.map((row, index) => {
+                        const formattedPoints = formatNumberBR(row[3]);
+                        return [
+                            (index + 1).toString(), // Rank
+                            row[1],                // Nome
+                            row[2],                // Vip
+                            formattedPoints,       // Pontos formatado
+                            row[0]                 // ID
+                        ];
+                    });
+
+                    tableBody.innerHTML = classifiedData.map(row => `
+                        <tr>
+                            ${row.map(cell => `<td>${cell}</td>`).join('')}
+                        </tr>
+                    `).join('');
+                } else {
+                    tableBody.innerHTML = '<td style="color:red; font-size:1em; text-transform: uppercase; font-weight: 900; text-align:center; padding:50px;" colspan="5">ixi, hackearam o banco de dados kkk</td>';
+                }
+            }).catch((error) => {
+                console.error('Error fetching data:', error);
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th class="small">Rank</th>
+                <th>Nome</th>
+                <th>Vip</th>
+                <th>Pontos</th>
+                <th>ID</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <footer>
+        <p>wescou</p>
+    </footer>
+</body>
+</html>
